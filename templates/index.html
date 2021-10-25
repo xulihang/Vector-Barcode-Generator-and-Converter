@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Vector Barcode Generator and Convertor</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+</head>
+
+<body>
+    Barcode Format: 
+    <select id="barcodeFormat">
+    </select> <br/>
+    Barcode Text: <input type="text" name="barcodeText" id="barcodeText" /><br/>
+    File Format: 
+    <select id="fileFormat">
+        <option>svg</option>
+        <option>emf</option>
+        <option>eps</option>
+    </select><br/>
+    <button type="button" onclick='generate()'>Generate</button>
+    <div id="result">
+    </div>
+    <script>
+        loadFormats();
+        function loadFormats() {
+            var url = "/formats/get";
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+
+            xhr.onreadystatechange = function(){
+                if(xhr.readyState === 4){
+                    console.log(xhr.status);
+                    console.log(xhr.responseText);
+                    var formats = JSON.parse(xhr.responseText)["formats"];
+                    var formats_select = document.getElementById("barcodeFormat");
+                    for (var i=0;i<formats.length;i++) {
+                        formats_select.add(new Option(formats[i],formats[i]));
+                    }
+                }
+            }
+            xhr.send();
+        }
+        
+        function generate(){
+            var resultContainer = document.getElementById("result");
+            resultContainer.innerHTML = "";
+            var url = "/barcode/create";
+            var xhr = new XMLHttpRequest();
+            var pay_load = {};
+            var barcodeFormat =  document.getElementById("barcodeFormat").value;
+            var barcodeText =  document.getElementById("barcodeText").value;
+            var fileFormat =  document.getElementById("fileFormat").value;
+            pay_load["barcodeFormat"] = barcodeFormat;
+            pay_load["barcodeText"] = barcodeText;
+            pay_load["fileFormat"] = fileFormat;
+            
+            xhr.open('POST', url);
+            xhr.setRequestHeader('content-type', 'application/json'); 
+
+            xhr.onreadystatechange = function(){
+                if(xhr.readyState === 4){
+                    console.log(xhr.status);
+                    console.log(xhr.responseText);
+                    if (xhr.status==200){
+                        appendDownloadLinkAndImage(xhr.responseText);
+                    }
+                }
+            }
+            
+            xhr.send(JSON.stringify(pay_load));
+        }
+        
+        function appendDownloadLinkAndImage(img_path){
+            var resultContainer = document.getElementById("result");
+            var a = document.createElement("a");
+            var url = "/image/get/"+img_path;
+            a.href = url;
+            a.download = img_path;
+            a.innerText="Download";
+            resultContainer.appendChild(a);
+            if (img_path.endsWith("svg")){
+                appendSVG(url);
+            }
+        }
+        
+        function appendSVG(url){
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url);
+            xhr.onreadystatechange = function(){
+                if(xhr.readyState === 4){
+                    console.log(xhr.status);
+                    console.log(xhr.responseText);
+                    var resultContainer = document.getElementById("result");
+                    var imageContainer = document.createElement("div");
+                    imageContainer.innerHTML = xhr.responseText;
+                    resultContainer.appendChild(imageContainer);
+                }
+            }
+            xhr.send();
+        }
+    </script>
+</body>
+
+</html>
